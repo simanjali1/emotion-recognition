@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Emotion Recognition</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Header -->
+    <h1>Facial Emotion Recognition</h1>
+    <p class="subtitle">Upload an image or use your webcam to detect emotions in real time.</p>
+
+    <!-- Input Section -->
+    <div class="input-section">
+
+      <!-- Upload -->
+      <div class="upload-area">
+        <input type="file" id="imageUpload" accept="image/*" />
+        <label for="imageUpload" class="btn">Upload Image</label>
+      </div>
+
+      <!-- Webcam -->
+      <button class="btn" id="webcamBtn">Start Webcam</button>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn primary" id="analyzeBtn" disabled>Analyze</button>
+        <button class="btn" id="clearBtn">Clear</button>
+      </div>
+
+    </div>
+
+    <!-- Status -->
+    <p id="status" class="status">Loading model, please wait...</p>
+
+    <!-- Preview -->
+    <div class="preview-section" id="previewSection" style="display:none;">
+      <canvas id="inputCanvas"></canvas>
+    </div>
+
+    <!-- Results -->
+    <div class="results-section" id="resultsSection" style="display:none;">
+
+      <!-- Prediction -->
+      <div class="prediction-box">
+        <h2 id="predictionLabel">—</h2>
+        <p id="predictionConfidence"></p>
+      </div>
+
+      <!-- Bar Chart -->
+      <div class="chart-section">
+        <h3>Confidence Scores</h3>
+        <div id="barChart"></div>
+      </div>
+
+      <!-- Grad-CAM -->
+      <div class="gradcam-section">
+        <h3>Grad-CAM Heatmap</h3>
+        <canvas id="gradcamCanvas"></canvas>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <!-- MediaPipe Face Detection -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <!-- App -->
+  <script src="app.js"></script>
+
+</body>
+</html>
