@@ -29,7 +29,6 @@
         </svg>
       </div>
       <h1 class="loading-title">Facial Emotion Recognition</h1>
-      <p class="loading-sub">Al Akhawayn University &middot; Capstone Project</p>
     </div>
     <div class="bubbles-stage">
       <div class="bubble bubble--angry"    style="--delay:0s;  --x:-100px;--y:-75px;">
@@ -88,7 +87,7 @@
       <div class="ls-cta" id="lsCta">
         <button class="ls-btn ls-btn--primary" id="launchBtn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          Launch App
+          Start
         </button>
         <button class="ls-btn ls-btn--ghost" id="modelInfoBtn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -122,7 +121,7 @@
     <div class="ls-info-footer">
       <button class="ls-btn ls-btn--primary ls-btn--sm" id="lsInfoLaunch">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        Launch App
+        Start
       </button>
     </div>
   </div>
@@ -163,6 +162,11 @@
         <span id="status" class="status-text">Ready</span>
       </div>
     </header>
+
+    <div class="disclaimer-bar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Just a heads-up: this is AI-generated and might not always get it right.
+    </div>
 
     <div class="workspace">
 
@@ -325,7 +329,10 @@
 
   // ── Loading screen buttons ─────────────────────────────────
   document.getElementById('launchBtn').addEventListener('click', _doTransition);
-  document.getElementById('lsInfoLaunch').addEventListener('click', _doTransition);
+  document.getElementById('lsInfoLaunch').addEventListener('click', () => {
+    closeInfoOverlay();
+    setTimeout(_doTransition, 150);
+  });
   document.getElementById('modelInfoBtn').addEventListener('click', openInfoOverlay);
 
   // ── Sidebar buttons ────────────────────────────────────────

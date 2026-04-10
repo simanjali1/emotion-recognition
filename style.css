@@ -608,6 +608,13 @@ html, body {
   transition: none;
   height: 0;
   overflow: hidden;
+  width: 100%;
+  justify-content: center;
+}
+.ls-cta .ls-btn {
+  flex: 1;
+  max-width: 180px;
+  justify-content: center;
 }
 .ls-cta--visible {
   opacity: 1;
@@ -768,4 +775,25 @@ html, body {
 /* App screen fade out (back to splash) */
 .app-screen.fade-out-app {
   animation: fadeOut 0.4s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+/* ============================================================
+   DISCLAIMER BAR
+============================================================ */
+.disclaimer-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 20px;
+  background: rgba(240, 180, 41, 0.06);
+  border-bottom: 1px solid rgba(240, 180, 41, 0.15);
+  font-size: 11px;
+  color: rgba(240, 180, 41, 0.75);
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+.disclaimer-bar svg {
+  flex-shrink: 0;
+  opacity: 0.8;
 }
