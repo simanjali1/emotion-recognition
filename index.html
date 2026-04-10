@@ -3,77 +3,398 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Emotion Recognition</title>
+  <title>Facial Emotion Recognition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <div class="container">
-
-    <!-- Header -->
-    <h1>Facial Emotion Recognition</h1>
-    <p class="subtitle">Upload an image or use your webcam to detect emotions in real time.</p>
-
-    <!-- Input Section -->
-    <div class="input-section">
-
-      <!-- Upload -->
-      <div class="upload-area">
-        <input type="file" id="imageUpload" accept="image/*" />
-        <label for="imageUpload" class="btn">Upload Image</label>
+<!-- ============================================================
+     LOADING SCREEN
+============================================================ -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="ls-orb ls-orb--1"></div>
+  <div class="ls-orb ls-orb--2"></div>
+  <div class="loading-inner">
+    <div class="loading-brand">
+      <div class="loading-logo-mark">
+        <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="16" stroke="#63b3ed" stroke-width="1.4" opacity="0.4"/>
+          <circle cx="18" cy="18" r="10" stroke="#63b3ed" stroke-width="1.4"/>
+          <circle cx="13.5" cy="17" r="2" fill="#63b3ed"/>
+          <circle cx="22.5" cy="17" r="2" fill="#63b3ed"/>
+          <path d="M12 22.5 Q18 26.5 24 22.5" stroke="#63b3ed" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+        </svg>
       </div>
-
-      <!-- Webcam -->
-      <button class="btn" id="webcamBtn">Start Webcam</button>
-      <button class="btn" id="captureBtn" style="display:none;">Capture Photo</button>
-      <!-- Actions -->
-      <div class="actions">
-        <button class="btn primary" id="analyzeBtn" disabled>Analyze</button>
-        <button class="btn" id="clearBtn">Clear</button>
-      </div>
-
+      <h1 class="loading-title">Facial Emotion Recognition</h1>
+      <p class="loading-sub">Al Akhawayn University &middot; Capstone Project</p>
     </div>
-
-    <!-- Status -->
-    <p id="status" class="status">Loading model, please wait...</p>
-
-    <!-- Preview -->
-    <div class="preview-section" id="previewSection" style="display:none;">
-      <canvas id="inputCanvas"></canvas>
+    <div class="bubbles-stage">
+      <div class="bubble bubble--angry"    style="--delay:0s;  --x:-100px;--y:-75px;">
+        <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#e05565"/>
+          <line x1="24" y1="22" x2="34" y2="28" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <line x1="46" y1="28" x2="56" y2="22" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="30" cy="33" r="3" fill="#fff"/><circle cx="50" cy="33" r="3" fill="#fff"/>
+          <path d="M28 46 Q34 42 40 46 Q46 50 52 46" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon points="20,62 10,76 34,62" fill="#e05565"/></svg>
+      </div>
+      <div class="bubble bubble--sad"      style="--delay:0.2s;--x:100px; --y:-65px;">
+        <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#f0b429"/>
+          <line x1="24" y1="26" x2="34" y2="22" stroke="#5a3e00" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="46" y1="22" x2="56" y2="26" stroke="#5a3e00" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="30" cy="33" r="3.5" fill="#5a3e00"/><circle cx="50" cy="33" r="3.5" fill="#5a3e00"/>
+          <path d="M28 48 Q40 42 52 48" fill="none" stroke="#5a3e00" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon points="46,62 70,76 60,62" fill="#f0b429"/></svg>
+      </div>
+      <div class="bubble bubble--neutral"  style="--delay:0.4s;--x:-108px;--y:35px;">
+        <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#63b3ed"/>
+          <ellipse cx="30" cy="33" rx="4" ry="3" fill="#0c3a5c"/>
+          <ellipse cx="50" cy="33" rx="4" ry="3" fill="#0c3a5c"/>
+          <line x1="28" y1="46" x2="52" y2="46" stroke="#0c3a5c" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon points="20,62 8,76 36,62" fill="#63b3ed"/></svg>
+      </div>
+      <div class="bubble bubble--happy"    style="--delay:0.6s;--x:92px;  --y:68px;">
+        <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#48bb78"/>
+          <path d="M26 31 Q30 27 34 31" fill="none" stroke="#1a4731" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M46 31 Q50 27 54 31" fill="none" stroke="#1a4731" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M26 42 Q40 54 54 42" fill="#1a4731"/>
+          <path d="M26 42 Q40 50 54 42" fill="#fff"/>
+          <polygon points="46,62 70,78 56,62" fill="#48bb78"/></svg>
+      </div>
+      <div class="bubble bubble--surprise" style="--delay:0.8s;--x:0px;   --y:-12px;">
+        <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#9f7aea"/>
+          <path d="M24 20 Q30 16 36 20" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M44 20 Q50 16 56 20" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="30" cy="31" r="5" fill="#fff"/><circle cx="50" cy="31" r="5" fill="#fff"/>
+          <circle cx="30" cy="31" r="2.5" fill="#3b006e"/><circle cx="50" cy="31" r="2.5" fill="#3b006e"/>
+          <ellipse cx="40" cy="47" rx="7" ry="8" fill="#3b006e"/>
+          <ellipse cx="40" cy="47" rx="4" ry="5.5" fill="#1a0040"/></svg>
+      </div>
+      <svg class="arrows-svg" viewBox="0 0 300 300">
+        <path d="M120 60 Q150 40 180 60" fill="none" stroke="rgba(99,179,237,0.35)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+        <path d="M210 110 Q230 150 210 190" fill="none" stroke="rgba(99,179,237,0.35)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+        <path d="M180 230 Q150 250 120 230" fill="none" stroke="rgba(99,179,237,0.35)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+        <path d="M90 190 Q70 150 90 110" fill="none" stroke="rgba(99,179,237,0.35)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+        <defs><marker id="ah" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="rgba(99,179,237,0.6)"/>
+        </marker></defs>
+      </svg>
     </div>
-
-    <!-- Results -->
-    <div class="results-section" id="resultsSection" style="display:none;">
-
-      <!-- Prediction -->
-      <div class="prediction-box">
-        <h2 id="predictionLabel">—</h2>
-        <p id="predictionConfidence"></p>
+    <div class="loading-footer">
+      <div class="loading-bar-track"><div class="loading-bar-fill" id="loadBar"></div></div>
+      <p class="loading-status" id="loadStatus">Loading…</p>
+      <div class="ls-cta" id="lsCta">
+        <button class="ls-btn ls-btn--primary" id="launchBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          Launch App
+        </button>
+        <button class="ls-btn ls-btn--ghost" id="modelInfoBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Model Info
+        </button>
       </div>
-
-      <!-- Bar Chart -->
-      <div class="chart-section">
-        <h3>Confidence Scores</h3>
-        <div id="barChart"></div>
-      </div>
-
-      <!-- Grad-CAM -->
-      <div class="gradcam-section">
-        <h3>Grad-CAM Heatmap</h3>
-        <canvas id="gradcamCanvas"></canvas>
-      </div>
-
     </div>
-
   </div>
+</div>
 
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-  <!-- MediaPipe Face Detection -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <!-- App -->
-  <script src="app.js"></script>
+<!-- ============================================================
+     MODEL INFO OVERLAY — global, works from any screen
+============================================================ -->
+<div class="ls-info-overlay" id="lsInfoOverlay">
+  <div class="ls-info-card">
+    <div class="ls-info-header">
+      <span class="ls-info-title">Model Information</span>
+      <button class="ls-info-close" id="lsInfoClose">✕</button>
+    </div>
+    <div class="ls-info-body">
+      <div class="ls-info-row"><span class="ls-info-key">Architecture</span><span class="ls-info-val">CustomCNN — 4 conv blocks (64→128→256→512)</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Parameters</span><span class="ls-info-val ls-info-val--accent">56,209,991</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Training data</span><span class="ls-info-val">FER2013 + AffectNet — 38,656 images</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Test accuracy</span><span class="ls-info-val ls-info-val--accent">65.23% on FER2013 official test set</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Format</span><span class="ls-info-val">TF.js float16 — 107.2 MB</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Inference</span><span class="ls-info-val">~999 ms average on CPU browser</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Face detection</span><span class="ls-info-val">MediaPipe BlazeFace</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Privacy</span><span class="ls-info-val">All inference client-side — no data transmitted</span></div>
+      <div class="ls-info-row"><span class="ls-info-key">Emotions</span><span class="ls-info-val">angry &middot; disgust &middot; fear &middot; happy &middot; neutral &middot; sad &middot; surprise</span></div>
+    </div>
+    <div class="ls-info-footer">
+      <button class="ls-btn ls-btn--primary ls-btn--sm" id="lsInfoLaunch">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        Launch App
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP
+============================================================ -->
+<div id="appScreen" class="app-screen hidden">
+
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <button class="sidebar-icon-btn sidebar-icon-btn--back" id="backToSplashBtn" title="Back to start">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+        </svg>
+      </button>
+      <span class="sidebar-icon-label">Back</span>
+    </div>
+    <div class="sidebar-mid"></div>
+    <div class="sidebar-footer">
+      <button class="sidebar-icon-btn sidebar-icon-btn--info" id="sideModelInfoBtn" title="Model info">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </button>
+      <span class="sidebar-icon-label">Info</span>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h2 class="page-title">Facial Emotion Recognition</h2>
+      </div>
+      <div class="topbar-right">
+        <div class="status-dot dot--ok" id="statusDot"></div>
+        <span id="status" class="status-text">Ready</span>
+      </div>
+    </header>
+
+    <div class="workspace">
+
+      <section class="panel panel--input">
+        <div class="panel-label">Input</div>
+        <input type="file" id="imageUpload" accept="image/*" style="display:none!important" />
+        <label for="imageUpload" class="drop-zone" id="dropZone">
+          <div class="drop-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p class="drop-main">Drop image here</p>
+          <p class="drop-sub">or</p>
+          <span class="btn btn--outline btn--sm">Browse file</span>
+        </label>
+        <div class="or-divider"><span>or</span></div>
+        <div class="action-row">
+          <button class="btn btn--outline btn--half" id="pasteBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+            Paste
+          </button>
+          <button class="btn btn--outline btn--half" id="webcamBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="9"/></svg>
+            Start Webcam
+          </button>
+          <button class="btn btn--outline btn--full" id="captureBtn" style="display:none;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M20 7h-3l-2-3H9L7 7H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/></svg>
+            Capture Photo
+          </button>
+        </div>
+        <div class="canvas-wrap" id="previewSection" style="display:none;">
+          <canvas id="inputCanvas"></canvas>
+          <button class="btn btn--ghost btn--sm clear-x" id="clearBtn">✕</button>
+        </div>
+        <button class="btn btn--primary btn--full" id="analyzeBtn" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Analyze
+        </button>
+      </section>
+
+      <section class="panel panel--results" id="resultsSection" style="display:none;">
+        <div class="results-topbar">
+          <div class="panel-label" style="margin-bottom:0">Results</div>
+          <button class="btn-reset" id="resetBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            Reset
+          </button>
+        </div>
+        <div class="emotion-hero" id="emotionHero">
+          <div class="emotion-bubble" id="emotionBubble"></div>
+          <div class="emotion-info">
+            <div class="emotion-name" id="predictionLabel">—</div>
+            <div class="emotion-conf" id="predictionConfidence"></div>
+          </div>
+        </div>
+        <div class="chart-block">
+          <div class="block-label">Confidence scores</div>
+          <div id="barChart"></div>
+        </div>
+        <div class="gradcam-block">
+          <div class="block-label">Grad-CAM heatmap <span class="block-hint">attention regions</span></div>
+          <div class="gradcam-wrap">
+            <canvas id="gradcamCanvas"></canvas>
+            <div class="gradcam-legend">
+              <span class="leg-item"><span class="leg-swatch" style="background:#0055ff"></span>low</span>
+              <span class="leg-item"><span class="leg-swatch" style="background:#00ff88"></span>mid</span>
+              <span class="leg-item"><span class="leg-swatch" style="background:#ff4400"></span>high</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel--placeholder" id="resultsPlaceholder">
+        <div class="placeholder-inner">
+          <div class="ph-stage">
+            <div class="ph-bubble ph-bubble--angry"    style="--pd:0s;  --px:-88px;--py:-70px;">
+              <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#e05565"/>
+                <line x1="24" y1="22" x2="34" y2="28" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                <line x1="46" y1="28" x2="56" y2="22" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="30" cy="33" r="3" fill="#fff"/><circle cx="50" cy="33" r="3" fill="#fff"/>
+                <path d="M28 46 Q34 42 40 46 Q46 50 52 46" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+                <polygon points="20,62 10,76 34,62" fill="#e05565"/></svg>
+            </div>
+            <div class="ph-bubble ph-bubble--sad"      style="--pd:0.2s;--px:88px; --py:-62px;">
+              <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#f0b429"/>
+                <line x1="24" y1="26" x2="34" y2="22" stroke="#5a3e00" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="46" y1="22" x2="56" y2="26" stroke="#5a3e00" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="30" cy="33" r="3.5" fill="#5a3e00"/><circle cx="50" cy="33" r="3.5" fill="#5a3e00"/>
+                <path d="M28 48 Q40 42 52 48" fill="none" stroke="#5a3e00" stroke-width="2.5" stroke-linecap="round"/>
+                <polygon points="46,62 70,76 60,62" fill="#f0b429"/></svg>
+            </div>
+            <div class="ph-bubble ph-bubble--neutral"  style="--pd:0.4s;--px:-96px;--py:32px;">
+              <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#63b3ed"/>
+                <ellipse cx="30" cy="33" rx="4" ry="3" fill="#0c3a5c"/>
+                <ellipse cx="50" cy="33" rx="4" ry="3" fill="#0c3a5c"/>
+                <line x1="28" y1="46" x2="52" y2="46" stroke="#0c3a5c" stroke-width="2.5" stroke-linecap="round"/>
+                <polygon points="20,62 8,76 36,62" fill="#63b3ed"/></svg>
+            </div>
+            <div class="ph-bubble ph-bubble--happy"    style="--pd:0.6s;--px:82px; --py:62px;">
+              <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#48bb78"/>
+                <path d="M26 31 Q30 27 34 31" fill="none" stroke="#1a4731" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M46 31 Q50 27 54 31" fill="none" stroke="#1a4731" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M26 42 Q40 54 54 42" fill="#1a4731"/>
+                <path d="M26 42 Q40 50 54 42" fill="#fff"/>
+                <polygon points="46,62 70,78 56,62" fill="#48bb78"/></svg>
+            </div>
+            <div class="ph-bubble ph-bubble--surprise" style="--pd:0.8s;--px:0px;  --py:-10px;">
+              <svg viewBox="0 0 80 80"><circle cx="40" cy="36" r="30" fill="#9f7aea"/>
+                <path d="M24 20 Q30 16 36 20" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M44 20 Q50 16 56 20" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="30" cy="31" r="5" fill="#fff"/><circle cx="50" cy="31" r="5" fill="#fff"/>
+                <circle cx="30" cy="31" r="2.5" fill="#3b006e"/><circle cx="50" cy="31" r="2.5" fill="#3b006e"/>
+                <ellipse cx="40" cy="47" rx="7" ry="8" fill="#3b006e"/>
+                <ellipse cx="40" cy="47" rx="4" ry="5.5" fill="#1a0040"/></svg>
+            </div>
+            <svg class="ph-arrows" viewBox="0 0 300 300">
+              <path d="M120 60 Q150 40 180 60" fill="none" stroke="rgba(99,179,237,0.2)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ph-ah)"/>
+              <path d="M210 110 Q230 150 210 190" fill="none" stroke="rgba(99,179,237,0.2)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ph-ah)"/>
+              <path d="M180 230 Q150 250 120 230" fill="none" stroke="rgba(99,179,237,0.2)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ph-ah)"/>
+              <path d="M90 190 Q70 150 90 110" fill="none" stroke="rgba(99,179,237,0.2)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ph-ah)"/>
+              <defs><marker id="ph-ah" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="rgba(99,179,237,0.4)"/>
+              </marker></defs>
+            </svg>
+          </div>
+          <p class="placeholder-text">Upload a face image<br>to detect its emotion</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="app.js"></script>
+
+<script>
+  // ── Fake progress bar ──────────────────────────────────────
+  let _fakePct = 0;
+  const _barEl = document.getElementById('loadBar');
+  const _fakeTimer = setInterval(() => {
+    _fakePct = Math.min(_fakePct + Math.random() * 7 + 2, 88);
+    if (_barEl) _barEl.style.width = _fakePct + '%';
+  }, 700);
+  window._stopFakeBar = () => clearInterval(_fakeTimer);
+
+  // ── Info overlay helpers ───────────────────────────────────
+  function openInfoOverlay()  { document.getElementById('lsInfoOverlay').classList.add('ls-info--open'); }
+  function closeInfoOverlay() { document.getElementById('lsInfoOverlay').classList.remove('ls-info--open'); }
+
+  document.getElementById('lsInfoClose').addEventListener('click', closeInfoOverlay);
+  document.getElementById('lsInfoOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('lsInfoOverlay')) closeInfoOverlay();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfoOverlay(); });
+
+  // ── Loading screen buttons ─────────────────────────────────
+  document.getElementById('launchBtn').addEventListener('click', _doTransition);
+  document.getElementById('lsInfoLaunch').addEventListener('click', _doTransition);
+  document.getElementById('modelInfoBtn').addEventListener('click', openInfoOverlay);
+
+  // ── Sidebar buttons ────────────────────────────────────────
+  document.getElementById('backToSplashBtn').addEventListener('click', () => {
+    const as = document.getElementById('appScreen');
+    const ls = document.getElementById('loadingScreen');
+    as.classList.add('fade-out-app');
+    setTimeout(() => {
+      as.classList.add('hidden');
+      as.classList.remove('fade-out-app');
+      ls.style.display = 'flex';
+      ls.classList.remove('fade-out');
+      const cta = document.getElementById('lsCta');
+      if (cta) cta.classList.add('ls-cta--visible');
+      const lbl = document.getElementById('loadStatus');
+      if (lbl) lbl.textContent = 'Model loaded successfully.';
+      const bar = document.getElementById('loadBar');
+      if (bar) bar.style.width = '100%';
+    }, 400);
+  });
+
+  document.getElementById('sideModelInfoBtn').addEventListener('click', openInfoOverlay);
+
+  // ── Reset button ───────────────────────────────────────────
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.getElementById('clearBtn').click();
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('resultsPlaceholder').style.display = 'flex';
+    document.getElementById('predictionLabel').textContent = '—';
+    document.getElementById('predictionConfidence').textContent = '';
+    document.getElementById('barChart').innerHTML = '';
+  });
+
+  // ── Emotion hero bubble ────────────────────────────────────
+  const EMOTION_COLORS = { angry:'#e05565', disgust:'#718096', fear:'#9f7aea', happy:'#48bb78', neutral:'#63b3ed', sad:'#f0b429', surprise:'#ed8936' };
+  const EMOTION_FACE   = { angry:'😠', disgust:'🤢', fear:'😨', happy:'😊', neutral:'😐', sad:'😢', surprise:'😲' };
+
+  new MutationObserver(() => {
+    const emotion = document.getElementById('predictionLabel').textContent.trim().toLowerCase();
+    if (!emotion || emotion === '—') return;
+    const bubble = document.getElementById('emotionBubble');
+    const hero   = document.getElementById('emotionHero');
+    bubble.textContent = EMOTION_FACE[emotion] || '🙂';
+    bubble.style.background = 'none';
+    bubble.style.border = 'none';
+    hero.style.setProperty('--accent', EMOTION_COLORS[emotion] || '#63b3ed');
+    document.getElementById('resultsSection').style.display = 'flex';
+    document.getElementById('resultsPlaceholder').style.display = 'none';
+  }).observe(document.getElementById('predictionLabel'), { childList:true, characterData:true, subtree:true });
+
+  // ── Drag-and-drop ──────────────────────────────────────────
+  const dz = document.getElementById('dropZone');
+  ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag-over'); }));
+  ['dragleave','dragend'].forEach(ev  => dz.addEventListener(ev, () => dz.classList.remove('drag-over')));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) {
+      document.getElementById('imageUpload').files = e.dataTransfer.files;
+      document.getElementById('imageUpload').dispatchEvent(new Event('change'));
+    }
+  });
+
+  // ── Hide placeholder when preview appears ──────────────────
+  new MutationObserver(() => {
+    if (document.getElementById('previewSection').style.display !== 'none')
+      document.getElementById('resultsPlaceholder').style.display = 'none';
+  }).observe(document.getElementById('previewSection'), { attributes:true });
+</script>
 
 </body>
 </html>

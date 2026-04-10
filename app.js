@@ -42,12 +42,62 @@ const ctx     = inputCanvas.getContext('2d');
 const gradCtx = gradcamCanvas.getContext('2d', {willReadFrequently: true});
 
 // ============================================================
+// STATUS HELPER — updates the topbar and triggers transitions
+// ============================================================
+
+function setStatus(msg) {
+  // Update topbar text
+  if (statusEl) statusEl.textContent = msg;
+
+  // Update status dot
+  const dot = document.getElementById('statusDot');
+  if (dot) {
+    dot.className = 'status-dot ' + (
+      msg.startsWith('❌') ? 'dot--error' :
+      (msg.includes('Loading') || msg.includes('Detecting') ||
+       msg.includes('Analyzing') || msg.includes('…') || msg.includes('please wait')) ?
+      'dot--loading' : 'dot--ok'
+    );
+  }
+
+  // Trigger screen transition when model is ready
+  if (msg === 'Model ready. Upload an image or start webcam.') {
+    _onModelReady();
+  }
+}
+
+function _onModelReady() {
+  if (window._stopFakeBar) window._stopFakeBar();
+  const bar = document.getElementById('loadBar');
+  const lbl = document.getElementById('loadStatus');
+  if (bar) { bar.style.transition = 'width 0.4s ease'; bar.style.width = '100%'; }
+  if (lbl) lbl.textContent = 'Model loaded successfully.';
+  // Show the two CTA buttons
+  setTimeout(() => {
+    const cta = document.getElementById('lsCta');
+    if (cta) cta.classList.add('ls-cta--visible');
+  }, 500);
+}
+
+function _doTransition() {
+  const ls = document.getElementById('loadingScreen');
+  const as = document.getElementById('appScreen');
+  if (!ls || !as) return;
+  ls.classList.add('fade-out');
+  setTimeout(() => {
+    ls.style.display = 'none';
+    as.classList.remove('hidden');
+    as.classList.add('fade-in');
+  }, 650);
+}
+
+// ============================================================
 // LOAD MODELS
 // ============================================================
 
 async function loadModel() {
   try {
-    setStatus('Loading model, please wait...');
+    setStatus('Loading model, please wait…');
     model      = await tf.loadLayersModel(MODEL_PATH);
     modelPart1 = await tf.loadGraphModel(MODEL_PART1_PATH);
     modelPart2 = await tf.loadGraphModel(MODEL_PART2_PATH);
@@ -66,6 +116,20 @@ async function loadModel() {
 imageUpload.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+  if (!allowedTypes.includes(file.type)) {
+    setStatus('❌ Unsupported file format. Please upload a JPG, PNG, WEBP, or BMP image.');
+    imageUpload.value = '';
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    setStatus('❌ File too large. Please upload an image under 10MB.');
+    imageUpload.value = '';
+    return;
+  }
+
   stopWebcam();
   const reader = new FileReader();
   reader.onload = (ev) => {
@@ -81,14 +145,67 @@ imageUpload.addEventListener('change', (e) => {
 });
 
 // ============================================================
+// PASTE FROM CLIPBOARD
+// ============================================================
+
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (!file) return;
+      stopWebcam();
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          drawImageToCanvas(img);
+          analyzeBtn.disabled = false;
+          setStatus('Image pasted. Click Analyze.');
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+      break;
+    }
+  }
+});
+
+document.getElementById('pasteBtn').addEventListener('click', async () => {
+  try {
+    const clipboardItems = await navigator.clipboard.read();
+    for (const clipboardItem of clipboardItems) {
+      for (const type of clipboardItem.types) {
+        if (type.startsWith('image/')) {
+          const blob = await clipboardItem.getType(type);
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+              drawImageToCanvas(img);
+              analyzeBtn.disabled = false;
+              setStatus('Image pasted. Click Analyze.');
+            };
+            img.src = ev.target.result;
+          };
+          reader.readAsDataURL(blob);
+          return;
+        }
+      }
+    }
+    setStatus('❌ No image found in clipboard. Copy an image first.');
+  } catch (err) {
+    setStatus('❌ Could not access clipboard. Try Ctrl+V instead.');
+  }
+});
+
+// ============================================================
 // WEBCAM
 // ============================================================
 
 webcamBtn.addEventListener('click', async () => {
-  if (webcamActive) {
-    stopWebcam();
-    return;
-  }
+  if (webcamActive) { stopWebcam(); return; }
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: true });
     webcamActive = true;
@@ -105,7 +222,7 @@ webcamBtn.addEventListener('click', async () => {
       drawLiveFeed();
     });
 
-    captureBtn.style.display = 'inline-block';
+    captureBtn.style.display = 'inline-flex';
     analyzeBtn.disabled = true;
 
   } catch (err) {
@@ -126,10 +243,7 @@ captureBtn.addEventListener('click', () => {
   if (!videoEl) return;
   liveFeedActive = false;
   drawImageToCanvas(videoEl);
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   webcamActive = false;
   webcamBtn.textContent    = 'Start Webcam';
   captureBtn.style.display = 'none';
@@ -138,10 +252,7 @@ captureBtn.addEventListener('click', () => {
 });
 
 function stopWebcam() {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   webcamActive             = false;
   liveFeedActive           = false;
   videoEl                  = null;
@@ -174,25 +285,16 @@ async function detectFace() {
         `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
     });
 
-    faceDetection.setOptions({
-      model: 'short',
-      minDetectionConfidence: 0.5
-    });
+    faceDetection.setOptions({ model: 'short', minDetectionConfidence: 0.5 });
 
     faceDetection.onResults((results) => {
       faceDetection.close();
-      if (results.detections.length === 0) {
-        resolve(null);
-      } else {
-        const box = results.detections[0].boundingBox;
-        resolve(box);
-      }
+      if (results.detections.length === 0) resolve(null);
+      else resolve(results.detections[0].boundingBox);
     });
 
     const imgEl = new Image();
-    imgEl.onload = async () => {
-      await faceDetection.send({image: imgEl});
-    };
+    imgEl.onload = async () => { await faceDetection.send({image: imgEl}); };
     imgEl.src = inputCanvas.toDataURL();
   });
 }
@@ -202,12 +304,9 @@ async function detectFace() {
 // ============================================================
 
 analyzeBtn.addEventListener('click', async () => {
-  if (!model || !modelPart1 || !modelPart2) {
-    setStatus('Model not loaded yet.');
-    return;
-  }
+  if (!model || !modelPart1 || !modelPart2) { setStatus('Model not loaded yet.'); return; }
 
-  setStatus('Detecting face...');
+  setStatus('Detecting face…');
   analyzeBtn.disabled = true;
 
   try {
@@ -218,31 +317,26 @@ analyzeBtn.addEventListener('click', async () => {
       return;
     }
 
-    // Crop face region from canvas
     const x = Math.max(0, box.xCenter * IMG_SIZE - (box.width  * IMG_SIZE) / 2);
     const y = Math.max(0, box.yCenter * IMG_SIZE - (box.height * IMG_SIZE) / 2);
     const w = Math.min(box.width  * IMG_SIZE, IMG_SIZE - x);
     const h = Math.min(box.height * IMG_SIZE, IMG_SIZE - y);
 
-    // Draw cropped face into temp canvas
     const faceCanvas  = document.createElement('canvas');
     faceCanvas.width  = IMG_SIZE;
     faceCanvas.height = IMG_SIZE;
     const faceCtx     = faceCanvas.getContext('2d');
     faceCtx.drawImage(inputCanvas, x, y, w, h, 0, 0, IMG_SIZE, IMG_SIZE);
 
-    // Update input canvas to show cropped face
     ctx.clearRect(0, 0, IMG_SIZE, IMG_SIZE);
     ctx.drawImage(faceCanvas, 0, 0);
 
-    setStatus('Analyzing...');
+    setStatus('Analyzing…');
 
     const tensor = tf.tidy(() => {
       return tf.browser.fromPixels(faceCanvas)
         .resizeBilinear([IMG_SIZE, IMG_SIZE])
-        .toFloat()
-        .div(255.0)
-        .expandDims(0);
+        .toFloat().div(255.0).expandDims(0);
     });
 
     const predictions = model.predict(tensor);
@@ -310,14 +404,6 @@ async function renderGradCAM(inputTensor, classIdx) {
 
     const grads = gradFn(convOutputs);
 
-    const gradsData = await grads.data();
-    let gMin = Infinity, gMax = -Infinity;
-    for (let i = 0; i < gradsData.length; i++) {
-      if (gradsData[i] < gMin) gMin = gradsData[i];
-      if (gradsData[i] > gMax) gMax = gradsData[i];
-    }
-    console.log('Grads min:', gMin, 'max:', gMax);
-
     const cam = tf.tidy(() => {
       const squeezed = convOutputs.squeeze([0]);
       const gradsSq  = grads.squeeze([0]);
@@ -336,7 +422,6 @@ async function renderGradCAM(inputTensor, classIdx) {
     });
 
     const heatmapArr = await cam.data();
-
     convOutputs.dispose();
     grads.dispose();
     cam.dispose();
@@ -385,14 +470,6 @@ clearBtn.addEventListener('click', () => {
   analyzeBtn.disabled          = true;
   setStatus('Model ready. Upload an image or start webcam.');
 });
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function setStatus(msg) {
-  statusEl.textContent = msg;
-}
 
 // ============================================================
 // INIT
