@@ -304,37 +304,45 @@ async function detectFace() {
 // ============================================================
 
 analyzeBtn.addEventListener('click', async () => {
-  if (!model || !modelPart1 || !modelPart2) { setStatus('Model not loaded yet.'); return; }
+  if (!model) { setStatus('Model not loaded yet.'); return; }
+
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   setStatus('Detecting face…');
   analyzeBtn.disabled = true;
 
   try {
-    const box = await detectFace();
-    if (!box) {
-      setStatus('❌ No face detected. Please upload a clear face image.');
-      analyzeBtn.disabled = false;
-      return;
+    let box = null;
+
+    if (!isMobile) {
+      box = await detectFace();
+      if (box === null) {
+        setStatus('❌ No face detected. Please upload a clear face image.');
+        analyzeBtn.disabled = false;
+        return;
+      }
     }
 
-    const x = Math.max(0, box.xCenter * IMG_SIZE - (box.width  * IMG_SIZE) / 2);
-    const y = Math.max(0, box.yCenter * IMG_SIZE - (box.height * IMG_SIZE) / 2);
-    const w = Math.min(box.width  * IMG_SIZE, IMG_SIZE - x);
-    const h = Math.min(box.height * IMG_SIZE, IMG_SIZE - y);
+    // Crop face only if detection ran and succeeded
+    if (box && box !== 'skip') {
+      const x = Math.max(0, box.xCenter * IMG_SIZE - (box.width  * IMG_SIZE) / 2);
+      const y = Math.max(0, box.yCenter * IMG_SIZE - (box.height * IMG_SIZE) / 2);
+      const w = Math.min(box.width  * IMG_SIZE, IMG_SIZE - x);
+      const h = Math.min(box.height * IMG_SIZE, IMG_SIZE - y);
 
-    const faceCanvas  = document.createElement('canvas');
-    faceCanvas.width  = IMG_SIZE;
-    faceCanvas.height = IMG_SIZE;
-    const faceCtx     = faceCanvas.getContext('2d');
-    faceCtx.drawImage(inputCanvas, x, y, w, h, 0, 0, IMG_SIZE, IMG_SIZE);
-
-    ctx.clearRect(0, 0, IMG_SIZE, IMG_SIZE);
-    ctx.drawImage(faceCanvas, 0, 0);
+      const faceCanvas  = document.createElement('canvas');
+      faceCanvas.width  = IMG_SIZE;
+      faceCanvas.height = IMG_SIZE;
+      const faceCtx     = faceCanvas.getContext('2d');
+      faceCtx.drawImage(inputCanvas, x, y, w, h, 0, 0, IMG_SIZE, IMG_SIZE);
+      ctx.clearRect(0, 0, IMG_SIZE, IMG_SIZE);
+      ctx.drawImage(faceCanvas, 0, 0);
+    }
 
     setStatus('Analyzing…');
 
     const tensor = tf.tidy(() => {
-      return tf.browser.fromPixels(faceCanvas)
+      return tf.browser.fromPixels(inputCanvas)
         .resizeBilinear([IMG_SIZE, IMG_SIZE])
         .toFloat().div(255.0).expandDims(0);
     });
@@ -349,8 +357,22 @@ analyzeBtn.addEventListener('click', async () => {
 
     predLabel.textContent = emotion;
     predConf.textContent  = `Confidence: ${confidence}%`;
+
+    const msgEl = document.getElementById('emotionMessage');
+    if (msgEl) msgEl.textContent = EMOTION_MESSAGES[emotion] || '';
+
     renderBarChart(scores, maxIdx);
-    await renderGradCAM(tensor, maxIdx);
+
+    // Grad-CAM only on desktop where part1 and part2 are loaded
+    if (!isMobile && modelPart1 && modelPart2) {
+      await renderGradCAM(tensor, maxIdx);
+    } else {
+      gradcamCanvas.width  = IMG_SIZE;
+      gradcamCanvas.height = IMG_SIZE;
+      gradCtx.drawImage(inputCanvas, 0, 0);
+      const note = document.getElementById('gradcamNote');
+      if (note) note.style.display = 'block';
+    }
 
     tensor.dispose();
     resultsSection.style.display = 'flex';
@@ -359,6 +381,7 @@ analyzeBtn.addEventListener('click', async () => {
   } catch (err) {
     setStatus('❌ Analysis failed. Check console.');
     console.error(err);
+    analyzeBtn.disabled = false;
   }
 
   analyzeBtn.disabled = false;
