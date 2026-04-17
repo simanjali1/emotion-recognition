@@ -771,6 +771,13 @@ html, body {
 .btn-reset:hover svg {
   transform: rotate(-180deg);
 }
+.emotion-msg {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 4px;
+  line-height: 1.4;
+}
 
 /* App screen fade out (back to splash) */
 .app-screen.fade-out-app {

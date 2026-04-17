@@ -3,10 +3,31 @@
 // ============================================================
 
 const EMOTIONS = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise'];
+const EMOTION_MESSAGES = {
+  angry:    'Furrowed brows and tense facial muscles detected.',
+  disgust:  'Nose wrinkle and raised upper lip detected.',
+  fear:     'Raised brows and widened eyes detected.',
+  happy:    'Upward lip curvature and raised cheeks detected.',
+  neutral:  'Relaxed facial muscles with no dominant expression.',
+  sad:      'Downturned lip corners and drooping eyelids detected.',
+  surprise: 'Raised brows and opened mouth detected.'
+};
+
 const MODEL_PATH       = 'model/model.json';
 const MODEL_PART1_PATH = 'model_part1/model.json';
 const MODEL_PART2_PATH = 'model_part2/model.json';
 const IMG_SIZE = 224;
+
+// ============================================================
+// BROWSER DETECTION
+// ============================================================
+
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+if (isIOS || isSafari) {
+  console.warn('Safari/iOS detected — face detection may be limited');
+}
 
 // ============================================================
 // STATE
@@ -42,14 +63,12 @@ const ctx     = inputCanvas.getContext('2d');
 const gradCtx = gradcamCanvas.getContext('2d', {willReadFrequently: true});
 
 // ============================================================
-// STATUS HELPER — updates the topbar and triggers transitions
+// STATUS HELPER
 // ============================================================
 
 function setStatus(msg) {
-  // Update topbar text
   if (statusEl) statusEl.textContent = msg;
 
-  // Update status dot
   const dot = document.getElementById('statusDot');
   if (dot) {
     dot.className = 'status-dot ' + (
@@ -60,7 +79,6 @@ function setStatus(msg) {
     );
   }
 
-  // Trigger screen transition when model is ready
   if (msg === 'Model ready. Upload an image or start webcam.') {
     _onModelReady();
   }
@@ -72,7 +90,6 @@ function _onModelReady() {
   const lbl = document.getElementById('loadStatus');
   if (bar) { bar.style.transition = 'width 0.4s ease'; bar.style.width = '100%'; }
   if (lbl) lbl.textContent = 'Model loaded successfully.';
-  // Show the two CTA buttons
   setTimeout(() => {
     const cta = document.getElementById('lsCta');
     if (cta) cta.classList.add('ls-cta--visible');
@@ -91,6 +108,8 @@ function _doTransition() {
   }, 650);
 }
 
+window._doTransition = _doTransition;
+
 // ============================================================
 // LOAD MODELS
 // ============================================================
@@ -98,6 +117,13 @@ function _doTransition() {
 async function loadModel() {
   try {
     setStatus('Loading model, please wait…');
+
+    // Mobile memory optimizations
+    if (isIOS || isSafari) {
+      tf.env().set('WEBGL_DELETE_TEXTURE_THRESHOLD', 0);
+      tf.env().set('WEBGL_FORCE_F16_TEXTURES', true);
+    }
+
     model      = await tf.loadLayersModel(MODEL_PATH);
     modelPart1 = await tf.loadGraphModel(MODEL_PART1_PATH);
     modelPart2 = await tf.loadGraphModel(MODEL_PART2_PATH);
@@ -260,7 +286,10 @@ function stopWebcam() {
   captureBtn.style.display = 'none';
   analyzeBtn.disabled      = true;
   previewSection.style.display = 'none';
-  setStatus('Model ready. Upload an image or start webcam.');
+  // Do not call setStatus here to avoid triggering _onModelReady again
+  if (statusEl) statusEl.textContent = 'Model ready. Upload an image or start webcam.';
+  const dot = document.getElementById('statusDot');
+  if (dot) dot.className = 'status-dot dot--ok';
 }
 
 // ============================================================
@@ -275,27 +304,49 @@ function drawImageToCanvas(source) {
 }
 
 // ============================================================
-// FACE DETECTION
+// FACE DETECTION — with Safari/iOS fallback
 // ============================================================
 
 async function detectFace() {
+  if (typeof FaceDetection === 'undefined') {
+    return 'skip';
+  }
+
   return new Promise((resolve) => {
-    const faceDetection = new FaceDetection({
-      locateFile: (file) =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
-    });
+    try {
+      const faceDetection = new FaceDetection({
+        locateFile: (file) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+      });
 
-    faceDetection.setOptions({ model: 'short', minDetectionConfidence: 0.5 });
+      faceDetection.setOptions({ model: 'short', minDetectionConfidence: 0.5 });
 
-    faceDetection.onResults((results) => {
-      faceDetection.close();
-      if (results.detections.length === 0) resolve(null);
-      else resolve(results.detections[0].boundingBox);
-    });
+      // Timeout after 8 seconds for Safari
+      const timeout = setTimeout(() => {
+        resolve('skip');
+      }, 8000);
 
-    const imgEl = new Image();
-    imgEl.onload = async () => { await faceDetection.send({image: imgEl}); };
-    imgEl.src = inputCanvas.toDataURL();
+      faceDetection.onResults((results) => {
+        clearTimeout(timeout);
+        faceDetection.close();
+        if (results.detections.length === 0) resolve(null);
+        else resolve(results.detections[0].boundingBox);
+      });
+
+      const imgEl = new Image();
+      imgEl.onload = async () => {
+        try {
+          await faceDetection.send({image: imgEl});
+        } catch(err) {
+          clearTimeout(timeout);
+          resolve('skip');
+        }
+      };
+      imgEl.src = inputCanvas.toDataURL();
+
+    } catch(err) {
+      resolve('skip');
+    }
   });
 }
 
@@ -311,30 +362,33 @@ analyzeBtn.addEventListener('click', async () => {
 
   try {
     const box = await detectFace();
-    if (!box) {
+
+    if (box === null) {
       setStatus('❌ No face detected. Please upload a clear face image.');
       analyzeBtn.disabled = false;
       return;
     }
 
-    const x = Math.max(0, box.xCenter * IMG_SIZE - (box.width  * IMG_SIZE) / 2);
-    const y = Math.max(0, box.yCenter * IMG_SIZE - (box.height * IMG_SIZE) / 2);
-    const w = Math.min(box.width  * IMG_SIZE, IMG_SIZE - x);
-    const h = Math.min(box.height * IMG_SIZE, IMG_SIZE - y);
+    // box === 'skip' means face detection unavailable (Safari) — proceed without cropping
+    if (box && box !== 'skip') {
+      const x = Math.max(0, box.xCenter * IMG_SIZE - (box.width  * IMG_SIZE) / 2);
+      const y = Math.max(0, box.yCenter * IMG_SIZE - (box.height * IMG_SIZE) / 2);
+      const w = Math.min(box.width  * IMG_SIZE, IMG_SIZE - x);
+      const h = Math.min(box.height * IMG_SIZE, IMG_SIZE - y);
 
-    const faceCanvas  = document.createElement('canvas');
-    faceCanvas.width  = IMG_SIZE;
-    faceCanvas.height = IMG_SIZE;
-    const faceCtx     = faceCanvas.getContext('2d');
-    faceCtx.drawImage(inputCanvas, x, y, w, h, 0, 0, IMG_SIZE, IMG_SIZE);
-
-    ctx.clearRect(0, 0, IMG_SIZE, IMG_SIZE);
-    ctx.drawImage(faceCanvas, 0, 0);
+      const faceCanvas  = document.createElement('canvas');
+      faceCanvas.width  = IMG_SIZE;
+      faceCanvas.height = IMG_SIZE;
+      const faceCtx     = faceCanvas.getContext('2d');
+      faceCtx.drawImage(inputCanvas, x, y, w, h, 0, 0, IMG_SIZE, IMG_SIZE);
+      ctx.clearRect(0, 0, IMG_SIZE, IMG_SIZE);
+      ctx.drawImage(faceCanvas, 0, 0);
+    }
 
     setStatus('Analyzing…');
 
     const tensor = tf.tidy(() => {
-      return tf.browser.fromPixels(faceCanvas)
+      return tf.browser.fromPixels(inputCanvas)
         .resizeBilinear([IMG_SIZE, IMG_SIZE])
         .toFloat().div(255.0).expandDims(0);
     });
@@ -349,6 +403,10 @@ analyzeBtn.addEventListener('click', async () => {
 
     predLabel.textContent = emotion;
     predConf.textContent  = `Confidence: ${confidence}%`;
+
+    const msgEl = document.getElementById('emotionMessage');
+    if (msgEl) msgEl.textContent = EMOTION_MESSAGES[emotion] || '';
+
     renderBarChart(scores, maxIdx);
     await renderGradCAM(tensor, maxIdx);
 
@@ -468,7 +526,8 @@ clearBtn.addEventListener('click', () => {
   predConf.textContent         = '';
   barChart.innerHTML           = '';
   analyzeBtn.disabled          = true;
-  setStatus('Model ready. Upload an image or start webcam.');
+  const msgEl = document.getElementById('emotionMessage');
+  if (msgEl) msgEl.textContent = '';
 });
 
 // ============================================================
